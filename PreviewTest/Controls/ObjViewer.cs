@@ -64,6 +64,14 @@ namespace PreviewTest.Controls
         public static readonly DependencyProperty CameraProperty =
             DependencyProperty.Register(nameof(Camera), typeof(PerspectiveCamera), typeof(ObjViewer), new FrameworkPropertyMetadata(null, CameraPropertyChanged));
 
+        public Vector3D LookAt
+        {
+            get => (Vector3D)GetValue(LookAtProperty);
+            set => SetValue(LookAtProperty, value);
+        }
+        public static readonly DependencyProperty LookAtProperty =
+            DependencyProperty.Register(nameof(LookAt), typeof(Vector3D), typeof(ObjViewer), new FrameworkPropertyMetadata(new Vector3D(0, 0, 0), LookAtPropertyChanged));
+
         static ObjViewer()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ObjViewer), new FrameworkPropertyMetadata(typeof(ObjViewer)));
@@ -72,6 +80,7 @@ namespace PreviewTest.Controls
         Viewport3D _Viewport = null;
         DirectionalLight _Light = null;
         PerspectiveCamera _Camera = null;
+        TranslateTransform3D _LookAtTransform = null;
 
         public ObjViewer()
         {
@@ -87,9 +96,23 @@ namespace PreviewTest.Controls
             _Camera = new PerspectiveCamera(new Point3D(0, 0, 5), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0), 45);
 
             CreateGridLines();
+            CreateLookAtSymbol();
 
             _Viewport.Camera = _Camera;
             _Viewport.Children.Add(new ModelVisual3D() { Content = _Light });
+        }
+
+        void CreateLookAtSymbol()
+        {
+            var xAxis = GeometryMaker.MakeLine3D(new Vector3D(0, 0, 0), new Vector3D(1, 0, 0), Brushes.Red, 0.02);
+            var yAxis = GeometryMaker.MakeLine3D(new Vector3D(0, 0, 0), new Vector3D(0, 1, 0), Brushes.Green, 0.02);
+            var zAxis = GeometryMaker.MakeLine3D(new Vector3D(0, 0, 0), new Vector3D(0, 0, 1), Brushes.Black, 0.02);
+
+            _LookAtTransform = new TranslateTransform3D();
+
+            _Viewport.Children.Add(new ModelVisual3D() { Content = xAxis, Transform = _LookAtTransform });
+            _Viewport.Children.Add(new ModelVisual3D() { Content = yAxis, Transform = _LookAtTransform });
+            _Viewport.Children.Add(new ModelVisual3D() { Content = zAxis, Transform = _LookAtTransform });
         }
 
         void CreateGridLines()
@@ -141,6 +164,17 @@ namespace PreviewTest.Controls
             var viewer = d as ObjViewer;
 
             viewer._Viewport.Camera = e.NewValue as PerspectiveCamera;
+        }
+
+        static void LookAtPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var viewer = d as ObjViewer;
+            if (viewer._LookAtTransform != null)
+            {
+                viewer._LookAtTransform.OffsetX = viewer.LookAt.X;
+                viewer._LookAtTransform.OffsetY = viewer.LookAt.Y;
+                viewer._LookAtTransform.OffsetZ = viewer.LookAt.Z;
+            }
         }
     }
 }

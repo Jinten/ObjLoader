@@ -71,15 +71,19 @@ namespace PreviewTest.Behaviors
 
         bool _IsCameraMoving = false;
         bool _IsCameraRotating = false;
+        bool _IsCameraNeckRotating = false;
         bool _IsUpdatingMatrix = false;
 
-        Point _CapturePosOnElement = new Point(0, 0);
-        Vector _MouseMovingVector = new Vector(0, 0);
-        Vector _MouseRotationVector = new Vector(0, 0);
+        Point _CapturePosOnElement = ZeroPoint;
+        Vector _MouseMovingVector = ZeroVector;
+        Vector _MouseRotationVector = ZeroVector;
+        Vector _MouseNeckRotationVector = ZeroVector;
 
+        static readonly Point ZeroPoint = new Point(0, 0);
         static readonly Vector ZeroVector = new Vector(0, 0);
-        static readonly Point3D ZeroPoint = new Point3D(0, 0, 0);
+        static readonly Point3D ZeroPoint3D = new Point3D(0, 0, 0);
         static readonly Vector3D UpVector3D = new Vector3D(0, 1, 0);
+        static readonly Vector3D FowardVector3D = new Vector3D(0, 0, 1);
 
         protected override void OnAttached()
         {
@@ -113,7 +117,7 @@ namespace PreviewTest.Behaviors
 
         void AssociatedObject_MouseMove(object sender, MouseEventArgs e)
         {
-            if(_IsCameraMoving == false && _IsCameraRotating == false)
+            if (_IsCameraMoving == false && _IsCameraRotating == false && _IsCameraNeckRotating == false)
             {
                 return;
             }
@@ -132,6 +136,11 @@ namespace PreviewTest.Behaviors
                 _MouseRotationVector = diffMoveMouseAmount;
             }
 
+            if (_IsCameraNeckRotating)
+            {
+                _MouseNeckRotationVector = diffMoveMouseAmount;
+            }
+
             UpdateMatrix();
         }
 
@@ -144,6 +153,9 @@ namespace PreviewTest.Behaviors
                     break;
                 case MouseButton.Middle:
                     _IsCameraMoving = true;
+                    break;
+                case MouseButton.Right:
+                    _IsCameraNeckRotating = true;
                     break;
             }
 
@@ -159,6 +171,9 @@ namespace PreviewTest.Behaviors
                     break;
                 case MouseButton.Middle:
                     _IsCameraMoving = false;
+                    break;
+                case MouseButton.Right:
+                    _IsCameraNeckRotating = false;
                     break;
             }
         }
@@ -200,12 +215,12 @@ namespace PreviewTest.Behaviors
 
         void UpdateMatrix()
         {
-            if(AssociatedObject == null || AssociatedObject.IsInitialized == false)
+            if (AssociatedObject == null || AssociatedObject.IsInitialized == false)
             {
                 return;
             }
 
-            if(_IsUpdatingMatrix)
+            if (_IsUpdatingMatrix)
             {
                 return;
             }
@@ -222,10 +237,31 @@ namespace PreviewTest.Behaviors
                 var move = prevMatrix.Transform(new Point3D(_MouseMovingVector.X, _MouseMovingVector.Y, 0));
                 LookAt += move.ToVector3D();
                 Position += move.ToVector3D();
+
                 _MouseMovingVector = ZeroVector;
             }
 
-            var currLookDir = (LookAt - Position).NormalizeToVector3D();
+            var currLookDir = (LookAt - Position).ToVector3D();
+
+            if (_MouseNeckRotationVector.Length > 0)
+            {
+                var v = new Vector(0 - _MouseNeckRotationVector.X, 0 - _MouseNeckRotationVector.Y);
+                var length = v.Length;
+
+                v.NormalizeTo();
+
+                var k = Math.Sign(Vector3D.DotProduct(FowardVector3D, currLookDir));
+                var rotAxis = Vector3D.CrossProduct(FowardVector3D, new Vector3D(v.X, v.Y * k, 0));
+                var lookDirRotation = FowardVector3D.MakeQuaternionBetweenVectors(currLookDir * k);
+
+                var neckRotation = new Quaternion(rotAxis.TransfromNormal(lookDirRotation), length);
+                currLookDir = currLookDir.TransfromNormal(neckRotation);
+
+                LookAt = Position.ToVector3D() + currLookDir;
+
+                _MouseNeckRotationVector = ZeroVector;
+            }
+
             var xRotAxis = Vector3D.CrossProduct(UpVector3D, currLookDir);
             var yRotAxis = Vector3D.CrossProduct(xRotAxis, currLookDir);
             var xAxisRotation = new Quaternion(xRotAxis, _MouseRotationVector.Y);
@@ -233,20 +269,17 @@ namespace PreviewTest.Behaviors
             _MouseRotationVector = ZeroVector;
 
             var rotation = xAxisRotation * yAxisRotation;
-            var transform = new RotateTransform3D(new QuaternionRotation3D(rotation), ZeroPoint);
+            var position = (-currLookDir.NormalizeTo() * Distance).TransfromNormal(rotation);
+            Position = LookAt + position.ToPoint3D();
 
-            var pos = transform.Transform(Vector3D.Multiply(Distance, -currLookDir));
-            Position = LookAt + pos.ToPoint3D();
-
-            var up = transform.Transform(Point3D.Add(ZeroPoint, new Vector3D(0, 1, 0)));
-            UpDirection = new Vector3D(up.X, up.Y, up.Z);
+            UpDirection = UpVector3D.TransfromNormal(rotation);
 
             var zAxis = (LookAt - Position).NormalizeToVector3D();
             var xAxis = Vector3D.CrossProduct(UpVector3D, zAxis);
             var yAxis = Vector3D.CrossProduct(zAxis, xAxis);
 
             Matrix = new Matrix3D(xAxis.X, xAxis.Y, xAxis.Z, 0, yAxis.X, yAxis.Y, yAxis.Z, 0, zAxis.X, zAxis.Y, zAxis.Z, 0, Position.X, Position.Y, Position.Z, 1.0);
-            
+
             _IsUpdatingMatrix = false;
         }
     }

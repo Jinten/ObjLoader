@@ -9,7 +9,7 @@
         xmlns:behaviors="clr-namespace:PreviewTest.Behaviors"
         xmlns:local="clr-namespace:PreviewTest"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" BorderThickness="1">
+        Title="Obj viewer" Height="450" Width="800" BorderThickness="1">
 
     <Window.DataContext>
         <vm:MainWindowViewModel/>
@@ -28,14 +28,19 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" VerticalAlignment="Top" Margin="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="16"/>
-            </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Text="{Binding Text}"/>
-            <Button Grid.Column="1" Content="..." Margin="2,0,0,0" Command="{Binding ExplorerCommand}"/>
-        </Grid>
+        <StackPanel Grid.Column="0" VerticalAlignment="Top">            
+            <Grid Margin="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Text="{Binding PreviewModelPath}"/>
+                <Button Grid.Column="1" Content="..." Margin="2,0,0,0" Command="{Binding ExplorerCommand}"/>
+            </Grid>
+            <TextBlock Text="{Binding CameraLookAt, StringFormat={}LookAt : {0:N5}}"/>
+            <TextBlock Text="{Binding CameraPosition, StringFormat={}Position : {0:N5}}"/>
+            <Button Content="Reset camera" Command="{Binding ResetCameraCommand}"/>
+        </StackPanel>
 
         <GridSplitter Grid.Column="1" Width="10" Background="Black" HorizontalAlignment="Stretch">
             <GridSplitter.Template>
@@ -47,7 +52,7 @@
             </GridSplitter.Template>
         </GridSplitter>
 
-        <ctrls:ObjViewer Grid.Column="2" PreviewModel="{Binding PreviewModel}" Camera="{Binding Camera}">
+        <ctrls:ObjViewer Grid.Column="2" PreviewModel="{Binding PreviewModel}" Camera="{Binding Camera}" LookAt="{Binding CameraLookAt}">
             <i:Interaction.Behaviors>
                 <behaviors:CameraController Position="{Binding CameraPosition}"
                                             LookAt="{Binding CameraLookAt}"

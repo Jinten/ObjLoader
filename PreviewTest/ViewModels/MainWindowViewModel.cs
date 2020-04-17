@@ -16,6 +16,13 @@ namespace PreviewTest.ViewModels
 {
     internal class MainWindowViewModel : ViewModelBase
     {
+        public string PreviewModelPath
+        {
+            get => _PreviewModelPath;
+            set => RaisePropertyChangedIfSet(ref _PreviewModelPath, value);
+        }
+        string _PreviewModelPath = string.Empty;
+
         public GeometryModel3D PreviewModel
         {
             get => _PreviewModel;
@@ -65,6 +72,13 @@ namespace PreviewTest.ViewModels
         public ViewModelCommand ExplorerCommand => _ExplorerCommand.Get(Explorer);
         ViewModelCommandHandler _ExplorerCommand = new ViewModelCommandHandler();
 
+        public ViewModelCommand ResetCameraCommand => _ResetCameraCommand.Get(ResetCamera);
+        ViewModelCommandHandler _ResetCameraCommand = new ViewModelCommandHandler();
+
+        Point3D _ResetPosition = new Point3D();
+        Vector3D _ResetLookAt = new Vector3D();
+        Vector3D _ResetUpDirection = new Vector3D();
+
         public MainWindowViewModel()
         {        
 
@@ -75,8 +89,13 @@ namespace PreviewTest.ViewModels
             // developing test.
             PreviewModel = GeometryMaker.MakeCube3D();
 
+            _ResetPosition = CameraPosition;
+            _ResetLookAt = CameraLookAt;
+            _ResetUpDirection = CameraUpDirection;
+
             var nCameraLookDir = (CameraLookAt - CameraPosition).NormalizeToVector3D();
             Camera = new PerspectiveCamera(CameraPosition, nCameraLookDir, CameraUpDirection, 45);
+
             UpdateCamera();
         }
 
@@ -92,6 +111,17 @@ namespace PreviewTest.ViewModels
             {
                 return;
             }
+
+            PreviewModelPath = ofd.FileName;
+
+            // TODO: load
+        }
+
+        void ResetCamera()
+        {
+            CameraPosition = _ResetPosition;
+            CameraLookAt = _ResetLookAt;
+            CameraUpDirection = _ResetUpDirection;
         }
 
         void UpdateCameraPosition(Point3D value)

@@ -1,5 +1,6 @@
 ﻿using Livet;
 using Livet.Commands;
+using Loader;
 using Microsoft.Win32;
 using PreviewTest.Extensions;
 using PreviewTest.Utilities;
@@ -106,7 +107,6 @@ namespace PreviewTest.ViewModels
             ofd.Title = "open to preview obj file.";
             ofd.RestoreDirectory = true;
 
-            //ダイアログを表示する
             if (ofd.ShowDialog() == false)
             {
                 return;
@@ -114,7 +114,24 @@ namespace PreviewTest.ViewModels
 
             PreviewModelPath = ofd.FileName;
 
-            // TODO: load
+            var handle = ObjLoader.CreateHandle();
+            var result = ObjLoader.Load(handle, PreviewModelPath);
+            if(result == false)
+            {
+                // TODO: error handling.
+                return;
+            }
+
+            var objMesh = new MeshGeometry3D()
+            {
+                Positions = new Point3DCollection(handle.Vertices.Select(arg => arg.Position.ToPoint3D()))
+            };
+
+            PreviewModel = new GeometryModel3D()
+            {
+                Geometry = objMesh,
+                Material = new DiffuseMaterial(Brushes.Gray)
+            };
         }
 
         void ResetCamera()

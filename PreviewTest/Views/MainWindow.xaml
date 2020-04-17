@@ -52,10 +52,10 @@
             </GridSplitter.Template>
         </GridSplitter>
 
-        <ctrls:ObjViewer Grid.Column="2" PreviewModel="{Binding PreviewModel}" Camera="{Binding Camera}" LookAt="{Binding CameraLookAt}">
+        <ctrls:ObjViewer Grid.Column="2" PreviewModel="{Binding PreviewModel}" Camera="{Binding Camera}" LookAt="{Binding CameraLookAt}" LightDirection="{Binding LightDirection}">
             <i:Interaction.Behaviors>
                 <behaviors:CameraController Position="{Binding CameraPosition}"
-                                            LookAt="{Binding CameraLookAt}"
+                                            LookAt="{Binding CameraLookAt}"                                            
                                             UpDirection="{Binding CameraUpDirection}"
                                             Distance="{Binding CameraDistance}"/>
             </i:Interaction.Behaviors>

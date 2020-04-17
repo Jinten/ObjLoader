@@ -31,6 +31,13 @@ namespace PreviewTest.ViewModels
         }
         GeometryModel3D _PreviewModel = null;
 
+        public Vector3D LightDirection
+        {
+            get => _LightDirection;
+            set => RaisePropertyChangedIfSet(ref _LightDirection, value);
+        }
+        Vector3D _LightDirection = new Vector3D(0, 1, 0);
+
         public PerspectiveCamera Camera
         {
             get => _Camera;
@@ -79,9 +86,10 @@ namespace PreviewTest.ViewModels
         Point3D _ResetPosition = new Point3D();
         Vector3D _ResetLookAt = new Vector3D();
         Vector3D _ResetUpDirection = new Vector3D();
+        TranslateTransform3D _PreviewModelTransform = new TranslateTransform3D();
 
         public MainWindowViewModel()
-        {        
+        {
 
         }
 
@@ -116,7 +124,7 @@ namespace PreviewTest.ViewModels
 
             var handle = ObjLoader.CreateHandle();
             var result = ObjLoader.Load(handle, PreviewModelPath);
-            if(result == false)
+            if (result == false)
             {
                 // TODO: error handling.
                 return;
@@ -127,10 +135,13 @@ namespace PreviewTest.ViewModels
                 Positions = new Point3DCollection(handle.Vertices.Select(arg => arg.Position.ToPoint3D()))
             };
 
+            _PreviewModelTransform.OffsetY = 1;
+
             PreviewModel = new GeometryModel3D()
             {
                 Geometry = objMesh,
-                Material = new DiffuseMaterial(Brushes.Gray)
+                Material = new DiffuseMaterial(Brushes.Gray),
+                Transform = _PreviewModelTransform
             };
         }
 
@@ -177,6 +188,8 @@ namespace PreviewTest.ViewModels
                 Camera.Position = CameraPosition;
                 Camera.LookDirection = nCameraLookDir;
                 Camera.UpDirection = CameraUpDirection;
+
+                LightDirection = nCameraLookDir;
             }
         }
     }

@@ -114,7 +114,12 @@ namespace Loader
                                 }
 
                                 var vIndex = new VertexIndex();
-                                vIndex.Position = ReadFaceIndex(ref index, data) - 1;
+                                vIndex.Position = ReadFaceIndex(ref index, data);
+                                if(vIndex.Position > 0)
+                                {
+                                    // plus index start from 1, so need to decrement just -1.
+                                    --vIndex.Position;
+                                }
 
                                 if (data[index] == '/')
                                 {
@@ -122,7 +127,12 @@ namespace Loader
                                     {
                                         // combination vertex index and normal index.
                                         index += 2; // skip '/' and '/'
-                                        vIndex.Normal = ReadFaceIndex(ref index, data) - 1;
+                                        vIndex.Normal = ReadFaceIndex(ref index, data);
+                                        if(vIndex.Normal > 0)
+                                        {
+                                            // plus index start from 1, so need to decrement just -1.
+                                            --vIndex.Normal;
+                                        }
                                     }
                                     else
                                     {
@@ -130,12 +140,15 @@ namespace Loader
                                         index += 1; // skip '/'
                                         vIndex.UV = ReadFaceIndex(ref index, data) - 1;
 
-                                        ++index;
-
                                         // end or exists normal index.
-                                        if (EndOfLine(index, data) == false)
+                                        if (data[index] == '/' && EndOfLine(index, data) == false)
                                         {
                                             vIndex.Normal = ReadFaceIndex(ref index, data) - 1;
+                                        }
+                                        else
+                                        {
+                                            // just only vertex index and texture uv index.
+                                            ++index;
                                         }
                                     }
                                 }
@@ -176,12 +189,14 @@ namespace Loader
                 }
             }
 
-            var vertices = new List<Vertex>();
+            int vCount = positionList.Count();
+            int nCount = normalList.Count();
+            var vertices = new List<Vertex>();            
             foreach(var vIndex in vertexIndexList)
             {
                 var vertex = new Vertex();
-                vertex.Position = positionList[vIndex.Position];
-                vertex.Normal = vIndex.Normal == -1 ? new Vector3D(0, 0, 0) : normalList[vIndex.Normal];
+                vertex.Position = positionList[GetIndex(vIndex.Position, vCount)];
+                vertex.Normal = vIndex.Normal == -1 ? new Vector3D(0,0,0) : normalList[GetIndex(vIndex.Normal, nCount)];
                 vertex.UV = vIndex.UV == -1 ? new Vector(-1, -1) : uvList[vIndex.UV];
 
                 vertices.Add(vertex);
@@ -192,8 +207,24 @@ namespace Loader
             return true;
         }
 
+        static int GetIndex(int index, int maxCount)
+        {
+            if(index >= 0)
+            {
+                return index;
+            }
+
+            if(index == -1)
+            {
+                return maxCount - 1;
+            }
+
+            return maxCount + index;
+        }
+
         static int ReadFaceIndex(ref int index, in string data)
         {
+            int test = index;
             string src = string.Empty;
             while (EndOfLine(index, data) == false && char.IsWhiteSpace(data[index]) == false && data[index] != '/')
             {

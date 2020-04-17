@@ -64,6 +64,14 @@ namespace PreviewTest.Controls
         public static readonly DependencyProperty CameraProperty =
             DependencyProperty.Register(nameof(Camera), typeof(PerspectiveCamera), typeof(ObjViewer), new FrameworkPropertyMetadata(null, CameraPropertyChanged));
 
+        public Vector3D LightDirection
+        {
+            get => (Vector3D)GetValue(LightDirectionProperty);
+            set => SetValue(LightDirectionProperty, value);
+        }
+        public static readonly DependencyProperty LightDirectionProperty =
+            DependencyProperty.Register(nameof(LightDirection), typeof(Vector3D), typeof(ObjViewer), new FrameworkPropertyMetadata(new Vector3D(0, 0, 1), LightDirectionPropertyChanged));
+
         public Vector3D LookAt
         {
             get => (Vector3D)GetValue(LookAtProperty);
@@ -164,6 +172,15 @@ namespace PreviewTest.Controls
             var viewer = d as ObjViewer;
 
             viewer._Viewport.Camera = e.NewValue as PerspectiveCamera;
+        }
+
+        static void LightDirectionPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var viewer = d as ObjViewer;
+            if (viewer._Light != null)
+            {
+                viewer._Light.Direction = viewer.LightDirection;
+            }
         }
 
         static void LookAtPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

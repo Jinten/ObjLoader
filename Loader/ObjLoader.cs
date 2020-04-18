@@ -101,17 +101,16 @@ namespace Loader
                         switch (data[strIndex])
                         {
                             case ' ':   // vertex position:
+                            case '\t':
                                 {
                                     // skip to until not white splace character.
-                                    strIndex = SkipToNotWhiteSplace(strIndex, data);
+                                    strIndex = SkipToValidCharacter(strIndex, data);
 
                                     var pos = new Vector3D();
                                     pos.X = ReadValue(ref strIndex, data);
                                     pos.Y = ReadValue(ref strIndex, data);
                                     pos.Z = ReadValue(ref strIndex, data);
                                     positionList.Add(pos);
-
-                                    strIndex = SkipToEndOfLine(strIndex, data);
                                 }
                                 break;
                             case 'n':   // vertex normal
@@ -119,15 +118,13 @@ namespace Loader
                                     ++strIndex; // skip 'n'
 
                                     // skip to until not white splace character.
-                                    strIndex = SkipToNotWhiteSplace(strIndex, data);
+                                    strIndex = SkipToValidCharacter(strIndex, data);
 
                                     var normal = new Vector3D();
                                     normal.X = ReadValue(ref strIndex, data);
                                     normal.Y = ReadValue(ref strIndex, data);
                                     normal.Z = ReadValue(ref strIndex, data);
                                     normalList.Add(normal);
-
-                                    strIndex = SkipToEndOfLine(strIndex, data);
                                 }
                                 break;
                             case 't':   // vertex uv
@@ -135,14 +132,12 @@ namespace Loader
                                     ++strIndex; // skip 't'
 
                                     // skip to until not white splace character.
-                                    strIndex = SkipToNotWhiteSplace(strIndex, data);
+                                    strIndex = SkipToValidCharacter(strIndex, data);
 
                                     var uv = new Vector();
                                     uv.X = ReadValue(ref strIndex, data);
                                     uv.Y = ReadValue(ref strIndex, data);
                                     uvList.Add(uv);
-
-                                    strIndex = SkipToEndOfLine(strIndex, data);
                                 }
                                 break;
                             default:
@@ -154,7 +149,7 @@ namespace Loader
                             ++strIndex; // skip 'f'
 
                             // skip to until not white splace character.
-                            strIndex = SkipToNotWhiteSplace(strIndex, data);
+                            strIndex = SkipToValidCharacter(strIndex, data);
 
                             var vIndexList = new List<VertexIndex>();
 
@@ -174,7 +169,7 @@ namespace Loader
                                     --vIndex.Position;
                                 }
 
-                                if (data[strIndex] == '/')
+                                if (EndOfLine(strIndex, data) == false && data[strIndex] == '/')
                                 {
                                     if (data[strIndex + 1] == '/')
                                     {
@@ -194,7 +189,7 @@ namespace Loader
                                         vIndex.UV = ReadFaceIndex(ref strIndex, data) - 1;
 
                                         // end or exists normal index.
-                                        if (data[strIndex] == '/' && EndOfLine(strIndex, data) == false)
+                                        if (EndOfLine(strIndex, data) == false && data[strIndex] == '/')
                                         {
                                             strIndex += 1; // skip '/'    
                                             vIndex.Normal = ReadFaceIndex(ref strIndex, data) - 1;
@@ -353,7 +348,13 @@ namespace Loader
 
             if (data[index] != '\n')
             {
-                ++index; // skip for next character.
+                // skip for next character.
+                index = SkipToValidCharacter(index, data);
+            }
+
+            if(src.Equals("-1.#IND00"))
+            {
+                return double.NaN;
             }
 
             return double.Parse(src);
@@ -368,7 +369,7 @@ namespace Loader
             return data[index] == '\r' || data[index] == '\n' || data[index] == '\0';
         }
 
-        static int SkipToNotWhiteSplace(int index, string data)
+        static int SkipToValidCharacter(int index, string data)
         {
             while (char.IsWhiteSpace(data[index]))
             {

@@ -193,7 +193,6 @@ namespace PreviewTest.ViewModels
                         Material = new DiffuseMaterial(Brushes.Gray),
                         Transform = _PreviewModelTransfrom
                     };
-                    PreviewModel.Freeze();
 
                     RaisePropertyChanged(nameof(VertexCount));
                     RaisePropertyChanged(nameof(IndexCount));

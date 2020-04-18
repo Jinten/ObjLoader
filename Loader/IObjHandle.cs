@@ -9,5 +9,6 @@ namespace Loader
     public interface IObjHandle
     {
         Vertex[] Vertices { get; }
+        int[] Indices { get; }
     }
 }

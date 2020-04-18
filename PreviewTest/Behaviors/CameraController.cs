@@ -113,14 +113,13 @@ namespace PreviewTest.Behaviors
         Vector _MouseRotationVector = ZeroVector;
         Vector _MouseNeckRotationVector = ZeroVector;
 
+        double Scale => Distance / 10.0;
+
         static readonly Point ZeroPoint = new Point(0, 0);
         static readonly Vector ZeroVector = new Vector(0, 0);
         static readonly Vector3D ZeroVector3D = new Vector3D(0, 0, 0);
         static readonly Vector3D UpVector3D = new Vector3D(0, 1, 0);
         static readonly Vector3D FowardVector3D = new Vector3D(0, 0, 1);
-        static readonly Vector3D BackVector3D = new Vector3D(0, 0, -1);
-        static readonly Vector3D RightVector3D = new Vector3D(1, 0, 0);
-        static readonly Vector3D LeftVector3D = new Vector3D(-1, 0, 0);
 
         protected override void OnAttached()
         {
@@ -183,7 +182,7 @@ namespace PreviewTest.Behaviors
 
             if (_IsCameraMoving)
             {
-                _TranslatingVector *= TranslationScaleRate * 10.0; // 10.0 is bias
+                _TranslatingVector *= TranslationScaleRate * Math.Max(1.0, Scale) * 10.0; // 10.0 is bias
 
                 UpdateMatrix();
 
@@ -201,7 +200,7 @@ namespace PreviewTest.Behaviors
         void AssociatedObject_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             var nDelta = e.Delta / 120.0;
-            Distance = Math.Max(0.1, Distance - nDelta * DistanceScaleRate * 5.0); // 5.0 is bias
+            Distance = Math.Max(0.1, Distance - nDelta * DistanceScaleRate * Scale * 5.0); // 5.0 is bias
             UpdateMatrix();
         }
 
@@ -220,7 +219,7 @@ namespace PreviewTest.Behaviors
             if ((Keyboard.GetKeyStates(Key.LeftAlt) & KeyStates.Down) != 0 && e.RightButton == MouseButtonState.Pressed)
             {
                 // scale
-                Distance = Math.Max(0.1, Distance - diffMoveMouseAmount.X * DistanceScaleRate);
+                Distance = Math.Max(0.1, Distance - diffMoveMouseAmount.X * DistanceScaleRate * Scale);
             }
             else if (_IsCameraNeckRotating)
             {
@@ -230,7 +229,7 @@ namespace PreviewTest.Behaviors
             // other
             if (_IsCameraMoving)
             {
-                var move = diffMoveMouseAmount * TranslationScaleRate;
+                var move = diffMoveMouseAmount * TranslationScaleRate * Scale;
                 _TranslatingVector = new Vector3D(move.X, move.Y, 0);
             }
 

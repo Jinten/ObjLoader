@@ -101,6 +101,9 @@ namespace PreviewTest.ViewModels
         }
         bool _IsIndeterminateLoadTime = false;
 
+        public int VertexCount => _ObjHandle != null ? _ObjHandle.Vertices.Length : 0;
+        public int IndexCount => _ObjHandle != null ? _ObjHandle.Indices.Length : 0;
+
 
         public ViewModelCommand LoadedCommand => _LoadedCommand.Get(Loaded);
         ViewModelCommandHandler _LoadedCommand = new ViewModelCommandHandler();
@@ -115,10 +118,13 @@ namespace PreviewTest.ViewModels
         Vector3D _ResetLookAt = new Vector3D();
         Vector3D _ResetUpDirection = new Vector3D();
         double _ResetDistance = 0.0;
+
         Transform3DGroup _PreviewModelTransfrom = new Transform3DGroup();
         ScaleTransform3D _PreviewModelScale = new ScaleTransform3D();
         RotateTransform3D _PreviewModelRotation = new RotateTransform3D();
         TranslateTransform3D _PreviewModelTranslation = new TranslateTransform3D();
+
+        IObjHandle _ObjHandle = null;
 
         public MainWindowViewModel()
         {
@@ -159,10 +165,10 @@ namespace PreviewTest.ViewModels
             IsIndeterminateLoadTime = true;
             LoadingState = "Reading obj file...";
 
-            var handle = ObjLoader.CreateHandle();
-            var result = ObjLoader.LoadAsync(handle, PreviewModelPath, loadedHandle =>
+            _ObjHandle = ObjLoader.CreateHandle();
+            var result = ObjLoader.LoadAsync(_ObjHandle, PreviewModelPath, loadedHandle =>
             {
-                handle = loadedHandle;
+                _ObjHandle = loadedHandle;
 
                 InvokeOnUIDispatcher(() =>
                 {
@@ -177,7 +183,8 @@ namespace PreviewTest.ViewModels
 
                     var objMesh = new MeshGeometry3D()
                     {
-                        Positions = new Point3DCollection(handle.Vertices.Select(arg => arg.Position.ToPoint3D()))
+                        Positions = new Point3DCollection(_ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D())),
+                        TriangleIndices = new Int32Collection(_ObjHandle.Indices)
                     };
 
                     PreviewModel = new GeometryModel3D()
@@ -186,6 +193,10 @@ namespace PreviewTest.ViewModels
                         Material = new DiffuseMaterial(Brushes.Gray),
                         Transform = _PreviewModelTransfrom
                     };
+                    PreviewModel.Freeze();
+
+                    RaisePropertyChanged(nameof(VertexCount));
+                    RaisePropertyChanged(nameof(IndexCount));
 
                     Loading = false;
                 });
@@ -221,10 +232,10 @@ namespace PreviewTest.ViewModels
 
         void ResetCamera()
         {
-            CameraPosition = _ResetPosition;
+            CameraDistance = _ResetDistance;
             CameraLookAt = _ResetLookAt;
             CameraUpDirection = _ResetUpDirection;
-            CameraDistance = _ResetDistance;
+            CameraPosition = _ResetPosition;
         }
 
         void UpdateCameraPosition(Point3D value)

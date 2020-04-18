@@ -33,7 +33,7 @@ namespace Loader
 
             var objHandle = handle as ObjHandle;
 
-            return LoadInternal(objHandle, data);
+            return LoadInternal(objHandle, ref data);
         }
 
         public static bool LoadAsync(IObjHandle handle, string path, Action<IObjHandle> complete, Action<int, int> loadProgress = null, Action<int, int> constructProgress = null)
@@ -45,15 +45,15 @@ namespace Loader
 
             var objHandle = handle as ObjHandle;
 
-            Task.Run(async ()=>
+            Task.Run(async () =>
             {
                 string data = string.Empty;
                 using (var reader = new StreamReader(path))
                 {
                     data = await reader.ReadToEndAsync();
                 }
-                
-                LoadInternal(objHandle, data, loadProgress, constructProgress);
+
+                LoadInternal(objHandle, ref data, loadProgress, constructProgress);
                 complete(objHandle);
             });
 
@@ -77,7 +77,7 @@ namespace Loader
             return true;
         }
 
-        static bool LoadInternal(ObjHandle objHandle, string data, Action<int, int> parseProgress = null, Action<int, int> constructProgress = null)
+        static bool LoadInternal(ObjHandle objHandle, ref string data, Action<int, int> parseProgress = null, Action<int, int> constructProgress = null)
         {
             var positionList = new List<Vector3D>();
             var normalList = new List<Vector3D>();
@@ -102,7 +102,7 @@ namespace Loader
                         {
                             case ' ':   // vertex position:
                                 {
-                                    // skip to unril not white splace character.
+                                    // skip to until not white splace character.
                                     strIndex = SkipToNotWhiteSplace(strIndex, data);
 
                                     var pos = new Vector3D();
@@ -118,7 +118,7 @@ namespace Loader
                                 {
                                     ++strIndex; // skip 'n'
 
-                                    // skip to unril not white splace character.
+                                    // skip to until not white splace character.
                                     strIndex = SkipToNotWhiteSplace(strIndex, data);
 
                                     var normal = new Vector3D();
@@ -134,7 +134,7 @@ namespace Loader
                                 {
                                     ++strIndex; // skip 't'
 
-                                    // skip to unril not white splace character.
+                                    // skip to until not white splace character.
                                     strIndex = SkipToNotWhiteSplace(strIndex, data);
 
                                     var uv = new Vector();
@@ -153,7 +153,7 @@ namespace Loader
                         {
                             ++strIndex; // skip 'f'
 
-                            // skip to unril not white splace character.
+                            // skip to until not white splace character.
                             strIndex = SkipToNotWhiteSplace(strIndex, data);
 
                             var vIndexList = new List<VertexIndex>();
@@ -245,34 +245,57 @@ namespace Loader
                 parseProgress?.Invoke(data.Length, strIndex);
             }
 
-            int vCount = positionList.Count();
-            int nCount = normalList.Count();
-            var vertices = new List<Vertex>();
+            int vCount = positionList.Count;
+            int nCount = normalList.Count;
+            int uvCount = uvList.Count;
 
             constructProgress?.Invoke(vertexIndexList.Count, 0);
+
+            var vertices = new List<Vertex>();
+            var indices = new List<int>();
+            var vertexIndexCacheDict = new Dictionary<string, int>();
 
             for (int i = 0; i < vertexIndexList.Count; ++i)
             {
                 var vIndex = vertexIndexList[i];
 
-                var vertex = new Vertex()
-                {
-                    Position = positionList[GetIndex(vIndex.Position, vCount)],
-                    Normal = vIndex.Normal == -1 ? new Vector3D(0, 0, 0) : normalList[GetIndex(vIndex.Normal, nCount)],
-                    UV = vIndex.UV == -1 ? new Vector(-1, -1) : uvList[vIndex.UV]
-                };
+                int posIndex = GetRequiredIndex(vIndex.Position, vCount);
+                int normalIndex = GetOptionalIndex(vIndex.Normal, nCount);
+                int uvIndex = GetOptionalIndex(vIndex.UV, uvCount);
 
-                vertices.Add(vertex);
+                string key = uvIndex.ToString() + normalIndex.ToString() + posIndex.ToString();
+
+                int cacheIndex;
+                if (vertexIndexCacheDict.TryGetValue(key, out cacheIndex))
+                {
+                    indices.Add(cacheIndex);
+                }
+                else
+                {
+                    var vertex = new Vertex()
+                    {
+                        Position = positionList[posIndex],
+                        Normal = normalIndex == -1 ? new Vector3D(0, 0, 0) : normalList[normalIndex],
+                        UV = uvIndex == -1 ? new Vector(-1, -1) : uvList[uvIndex]
+                    };
+
+                    vertices.Add(vertex);
+                    cacheIndex = vertices.Count - 1;
+
+                    indices.Add(cacheIndex);
+                    vertexIndexCacheDict.Add(key, cacheIndex);
+                }
 
                 constructProgress?.Invoke(vertexIndexList.Count, i);
             }
 
             objHandle.Vertices = vertices.ToArray();
+            objHandle.Indices = indices.ToArray();
 
             return true;
         }
 
-        static int GetIndex(int index, int maxCount)
+        static int GetRequiredIndex(int index, int maxCount)
         {
             if (index >= 0)
             {
@@ -281,9 +304,28 @@ namespace Loader
 
             if (index == -1)
             {
+                // refer to the last index.
                 return maxCount - 1;
             }
 
+            // relatively refers to the end of the list.
+            return maxCount + index;
+        }
+
+        static int GetOptionalIndex(int index, int maxCount)
+        {
+            if (index >= 0)
+            {
+                return index;
+            }
+
+            if (index == -1)
+            {
+                // unused.
+                return -1;
+            }
+
+            // relatively refers to the end of the list.
             return maxCount + index;
         }
 
@@ -328,7 +370,7 @@ namespace Loader
 
         static int SkipToNotWhiteSplace(int index, string data)
         {
-            while(char.IsWhiteSpace(data[index]))
+            while (char.IsWhiteSpace(data[index]))
             {
                 ++index;
             }

@@ -25,5 +25,6 @@ namespace Loader
     internal class ObjHandle : IObjHandle
     {
         public Vertex[] Vertices { get; set; } = null;
+        public int[] Indices { get; set; } = null;
     }
 }

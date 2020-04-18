@@ -101,6 +101,7 @@
     </Compile>
     <Compile Include="Behaviors\CameraController.cs" />
     <Compile Include="Controls\ObjViewer.cs" />
+    <Compile Include="Converters\InverseBooleanToVisibilityConverter.cs" />
     <Compile Include="Extensions\Point3DExtension.cs" />
     <Compile Include="Extensions\VectorExtension.cs" />
     <Compile Include="Utilities\GeometryMaker.cs" />

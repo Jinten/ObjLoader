@@ -73,6 +73,34 @@ namespace PreviewTest.ViewModels
         }
         double _CameraDistance = 10;
 
+        public bool Loading
+        {
+            get => _Loading;
+            set => RaisePropertyChangedIfSet(ref _Loading, value);
+        }
+        bool _Loading = false;
+
+        public double LoadProgress
+        {
+            get => _LoadProgress;
+            set => RaisePropertyChangedIfSet(ref _LoadProgress, value);
+        }
+        double _LoadProgress = 0.0;
+
+        public string LoadingState
+        {
+            get => _LoadingState;
+            set => RaisePropertyChangedIfSet(ref _LoadingState, value);
+        }
+        string _LoadingState = string.Empty;
+
+        public bool IsIndeterminateLoadTime
+        {
+            get => _IsIndeterminateLoadTime;
+            set => RaisePropertyChangedIfSet(ref _IsIndeterminateLoadTime, value);
+        }
+        bool _IsIndeterminateLoadTime = false;
+
 
         public ViewModelCommand LoadedCommand => _LoadedCommand.Get(Loaded);
         ViewModelCommandHandler _LoadedCommand = new ViewModelCommandHandler();
@@ -86,7 +114,10 @@ namespace PreviewTest.ViewModels
         Point3D _ResetPosition = new Point3D();
         Vector3D _ResetLookAt = new Vector3D();
         Vector3D _ResetUpDirection = new Vector3D();
-        TranslateTransform3D _PreviewModelTransform = new TranslateTransform3D();
+        Transform3DGroup _PreviewModelTransfrom = new Transform3DGroup();
+        ScaleTransform3D _PreviewModelScale = new ScaleTransform3D();
+        RotateTransform3D _PreviewModelRotation = new RotateTransform3D();
+        TranslateTransform3D _PreviewModelTranslation = new TranslateTransform3D();
 
         public MainWindowViewModel()
         {
@@ -122,27 +153,68 @@ namespace PreviewTest.ViewModels
 
             PreviewModelPath = ofd.FileName;
 
+            Loading = true;
+            IsIndeterminateLoadTime = true;
+            LoadingState = "Reading obj file...";
+
             var handle = ObjLoader.CreateHandle();
-            var result = ObjLoader.Load(handle, PreviewModelPath);
+            var result = ObjLoader.LoadAsync(handle, PreviewModelPath, loadedHandle =>
+            {
+                handle = loadedHandle;
+
+                InvokeOnUIDispatcher(() =>
+                {
+                    _PreviewModelScale.ScaleX = 10.0;
+                    _PreviewModelScale.ScaleY = 10.0;
+                    _PreviewModelScale.ScaleZ = 10.0;
+                    _PreviewModelTranslation.OffsetY = 1;
+
+                    _PreviewModelTransfrom.Children.Add(_PreviewModelScale);
+                    _PreviewModelTransfrom.Children.Add(_PreviewModelRotation);
+                    _PreviewModelTransfrom.Children.Add(_PreviewModelTranslation);
+
+                    var objMesh = new MeshGeometry3D()
+                    {
+                        Positions = new Point3DCollection(handle.Vertices.Select(arg => arg.Position.ToPoint3D()))
+                    };
+
+                    PreviewModel = new GeometryModel3D()
+                    {
+                        Geometry = objMesh,
+                        Material = new DiffuseMaterial(Brushes.Gray),
+                        Transform = _PreviewModelTransfrom
+                    };
+
+                    Loading = false;
+                });
+            },
+            (maxParseCount, parsingCount) =>
+            {
+                if (parsingCount == 0)
+                {
+                    IsIndeterminateLoadTime = false;
+                }
+
+                // phase 1 progress
+                LoadProgress = parsingCount / (double)maxParseCount;
+
+                var percent = LoadProgress * 100;
+                LoadingState = string.Format("Parsing {0:0.000} %", percent);
+            },
+            (maxConstructCount, constructingCount) =>
+            {
+                // phase 2 progress
+                LoadProgress = constructingCount / (double)maxConstructCount;
+
+                var percent = LoadProgress * 100;
+                LoadingState = string.Format("Constructing {0:0.000} %", percent);
+            });
+
             if (result == false)
             {
                 // TODO: error handling.
                 return;
             }
-
-            var objMesh = new MeshGeometry3D()
-            {
-                Positions = new Point3DCollection(handle.Vertices.Select(arg => arg.Position.ToPoint3D()))
-            };
-
-            _PreviewModelTransform.OffsetY = 1;
-
-            PreviewModel = new GeometryModel3D()
-            {
-                Geometry = objMesh,
-                Material = new DiffuseMaterial(Brushes.Gray),
-                Transform = _PreviewModelTransform
-            };
         }
 
         void ResetCamera()

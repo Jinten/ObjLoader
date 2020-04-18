@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:PreviewTest.ViewModels"
         xmlns:ctrls="clr-namespace:PreviewTest.Controls"
         xmlns:behaviors="clr-namespace:PreviewTest.Behaviors"
-        xmlns:local="clr-namespace:PreviewTest"
+        xmlns:converters="clr-namespace:PreviewTest.Converters"
         mc:Ignorable="d"
         Title="Obj viewer" Height="450" Width="800" BorderThickness="1">
 
@@ -15,12 +15,17 @@
         <vm:MainWindowViewModel/>
     </Window.DataContext>
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+    </Window.Resources>
+
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding LoadedCommand}"/>
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.5*"/>
@@ -28,8 +33,8 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Column="0" VerticalAlignment="Top">            
-            <Grid Margin="4">
+        <StackPanel Grid.Column="0" VerticalAlignment="Top">
+            <Grid Margin="4" Visibility="{Binding Loading, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="16"/>
@@ -37,9 +42,23 @@
                 <TextBox Grid.Column="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Text="{Binding PreviewModelPath}"/>
                 <Button Grid.Column="1" Content="..." Margin="2,0,0,0" Command="{Binding ExplorerCommand}"/>
             </Grid>
-            <TextBlock Text="{Binding CameraLookAt, StringFormat={}LookAt : {0:N5}}"/>
-            <TextBlock Text="{Binding CameraPosition, StringFormat={}Position : {0:N5}}"/>
-            <Button Content="Reset camera" Command="{Binding ResetCameraCommand}"/>
+
+            <Grid Margin="4">
+                <ProgressBar Height="24" 
+                             Minimum="0"
+                             Maximum="1" 
+                             HorizontalAlignment="Stretch"
+                             Value="{Binding LoadProgress}"
+                             IsIndeterminate="{Binding IsIndeterminateLoadTime}"                         
+                             Visibility="{Binding Loading, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock Text="{Binding LoadingState}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Grid>
+
+            <StackPanel Margin="4">
+                <TextBlock Text="{Binding CameraLookAt, StringFormat={}LookAt : {0:N5}}"/>
+                <TextBlock Text="{Binding CameraPosition, StringFormat={}Position : {0:N5}}"/>
+                <Button Content="Reset camera" Command="{Binding ResetCameraCommand}"/>
+            </StackPanel>
         </StackPanel>
 
         <GridSplitter Grid.Column="1" Width="10" Background="Black" HorizontalAlignment="Stretch">

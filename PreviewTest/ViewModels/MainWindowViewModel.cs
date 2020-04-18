@@ -114,6 +114,7 @@ namespace PreviewTest.ViewModels
         Point3D _ResetPosition = new Point3D();
         Vector3D _ResetLookAt = new Vector3D();
         Vector3D _ResetUpDirection = new Vector3D();
+        double _ResetDistance = 0.0;
         Transform3DGroup _PreviewModelTransfrom = new Transform3DGroup();
         ScaleTransform3D _PreviewModelScale = new ScaleTransform3D();
         RotateTransform3D _PreviewModelRotation = new RotateTransform3D();
@@ -132,6 +133,7 @@ namespace PreviewTest.ViewModels
             _ResetPosition = CameraPosition;
             _ResetLookAt = CameraLookAt;
             _ResetUpDirection = CameraUpDirection;
+            _ResetDistance = CameraDistance;
 
             var nCameraLookDir = (CameraLookAt - CameraPosition).NormalizeToVector3D();
             Camera = new PerspectiveCamera(CameraPosition, nCameraLookDir, CameraUpDirection, 45);
@@ -164,9 +166,9 @@ namespace PreviewTest.ViewModels
 
                 InvokeOnUIDispatcher(() =>
                 {
-                    _PreviewModelScale.ScaleX = 10.0;
-                    _PreviewModelScale.ScaleY = 10.0;
-                    _PreviewModelScale.ScaleZ = 10.0;
+                    _PreviewModelScale.ScaleX = 1.0;
+                    _PreviewModelScale.ScaleY = 1.0;
+                    _PreviewModelScale.ScaleZ = 1.0;
                     _PreviewModelTranslation.OffsetY = 1;
 
                     _PreviewModelTransfrom.Children.Add(_PreviewModelScale);
@@ -222,6 +224,7 @@ namespace PreviewTest.ViewModels
             CameraPosition = _ResetPosition;
             CameraLookAt = _ResetLookAt;
             CameraUpDirection = _ResetUpDirection;
+            CameraDistance = _ResetDistance;
         }
 
         void UpdateCameraPosition(Point3D value)

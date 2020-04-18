@@ -181,8 +181,6 @@ namespace PreviewTest.Behaviors
                 _IsCameraMoving = true;
             }
 
-            Console.WriteLine(_TranslatingVector);
-
             if (_IsCameraMoving)
             {
                 _TranslatingVector *= TranslationScaleRate * 10.0; // 10.0 is bias

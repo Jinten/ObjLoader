@@ -43,22 +43,23 @@
                 <Button Grid.Column="1" Content="..." Margin="2,0,0,0" Command="{Binding ExplorerCommand}"/>
             </Grid>
 
-            <Grid Margin="4">
+            <Grid Margin="4" Visibility="{Binding Loading, Converter={StaticResource BoolToVisibilityConverter}}">
                 <ProgressBar Height="24" 
                              Minimum="0"
                              Maximum="1" 
                              HorizontalAlignment="Stretch"
                              Value="{Binding LoadProgress}"
-                             IsIndeterminate="{Binding IsIndeterminateLoadTime}"                         
-                             Visibility="{Binding Loading, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                             IsIndeterminate="{Binding IsIndeterminateLoadTime}"/>
                 <TextBlock Text="{Binding LoadingState}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
             </Grid>
 
-            <StackPanel Margin="4">
-                <TextBlock Text="{Binding CameraLookAt, StringFormat={}LookAt : {0:N5}}"/>
-                <TextBlock Text="{Binding CameraPosition, StringFormat={}Position : {0:N5}}"/>
-                <Button Content="Reset camera" Command="{Binding ResetCameraCommand}"/>
-            </StackPanel>
+            <GroupBox Header="Camera">
+                <StackPanel Margin="4">                
+                    <TextBlock Text="{Binding CameraLookAt, StringFormat={}LookAt : {0:N3}}"/>
+                    <TextBlock Text="{Binding CameraPosition, StringFormat={}Position : {0:N3}}"/>
+                    <Button Content="Reset camera" Command="{Binding ResetCameraCommand}"/>
+                </StackPanel>
+            </GroupBox>
         </StackPanel>
 
         <GridSplitter Grid.Column="1" Width="10" Background="Black" HorizontalAlignment="Stretch">

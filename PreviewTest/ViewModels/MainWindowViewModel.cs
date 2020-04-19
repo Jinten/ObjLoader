@@ -114,6 +114,9 @@ namespace PreviewTest.ViewModels
         public ViewModelCommand ResetCameraCommand => _ResetCameraCommand.Get(ResetCamera);
         ViewModelCommandHandler _ResetCameraCommand = new ViewModelCommandHandler();
 
+        public ViewModelCommand RecalculateNormalsCommand => _RecalculateNormalsCommand.Get(RecalculateNormals);
+        ViewModelCommandHandler _RecalculateNormalsCommand = new ViewModelCommandHandler();
+
         Point3D _ResetPosition = new Point3D();
         Vector3D _ResetLookAt = new Vector3D();
         Vector3D _ResetUpDirection = new Vector3D();
@@ -184,7 +187,8 @@ namespace PreviewTest.ViewModels
                     var objMesh = new MeshGeometry3D()
                     {
                         Positions = new Point3DCollection(_ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D())),
-                        TriangleIndices = new Int32Collection(_ObjHandle.Indices)
+                        Normals = new Vector3DCollection(_ObjHandle.Vertices.Select(arg => arg.Normal)),
+                        TriangleIndices = new Int32Collection(_ObjHandle.Indices),
                     };
 
                     PreviewModel = new GeometryModel3D()
@@ -235,6 +239,45 @@ namespace PreviewTest.ViewModels
             CameraLookAt = _ResetLookAt;
             CameraUpDirection = _ResetUpDirection;
             CameraPosition = _ResetPosition;
+        }
+
+        void RecalculateNormals()
+        {
+            if (_ObjHandle == null)
+            {
+                return;
+            }
+
+            var normals = new Vector3D[_ObjHandle.Vertices.Length];
+
+            for (int i = 0; i < _ObjHandle.Indices.Length; i += 3)
+            {
+                int triIndex0 = _ObjHandle.Indices[i + 0];
+                int triIndex1 = _ObjHandle.Indices[i + 1];
+                int triIndex2 = _ObjHandle.Indices[i + 2];
+
+                Vector3D v1 = _ObjHandle.Vertices[triIndex1].Position - _ObjHandle.Vertices[triIndex0].Position;
+                Vector3D v2 = _ObjHandle.Vertices[triIndex2].Position - _ObjHandle.Vertices[triIndex0].Position;
+                var normal = Vector3D.CrossProduct(v1, v2);
+
+                normals[triIndex0] = normal;
+                normals[triIndex1] = normal;
+                normals[triIndex2] = normal;
+            }
+
+            var objMesh = new MeshGeometry3D()
+            {
+                Positions = new Point3DCollection(_ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D())),
+                Normals = new Vector3DCollection(normals),
+                TriangleIndices = new Int32Collection(_ObjHandle.Indices),
+            };
+
+            PreviewModel = new GeometryModel3D()
+            {
+                Geometry = objMesh,
+                Material = new DiffuseMaterial(Brushes.Gray),
+                Transform = _PreviewModelTransfrom
+            };
         }
 
         void UpdateCameraPosition(Point3D value)

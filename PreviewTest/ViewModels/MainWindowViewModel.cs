@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
@@ -24,12 +25,12 @@ namespace PreviewTest.ViewModels
         }
         string _PreviewModelPath = string.Empty;
 
-        public GeometryModel3D PreviewModel
+        public Model3DGroup PreviewModel
         {
             get => _PreviewModel;
             set => RaisePropertyChangedIfSet(ref _PreviewModel, value);
         }
-        GeometryModel3D _PreviewModel = null;
+        Model3DGroup _PreviewModel = new Model3DGroup();
 
         public Vector3D LightDirection
         {
@@ -103,7 +104,16 @@ namespace PreviewTest.ViewModels
 
         public int VertexCount => _ObjHandle != null ? _ObjHandle.Vertices.Length : 0;
         public int IndexCount => _ObjHandle != null ? _ObjHandle.Indices.Length : 0;
+        public int MasterMaterialCount => _ObjHandle != null ? _ObjHandle.MasterMaterials.Length : 0;
 
+        public IEnumerable<string> MasterMaterialNames => _ObjHandle?.MasterMaterials.Select(arg => arg.Name);
+
+        public int SelectedMaterialIndex
+        {
+            get => _SelectedMaterialIndex;
+            set => UpdateSelectedMaterialIndex(value);
+        }
+        int _SelectedMaterialIndex = -1;
 
         public ViewModelCommand LoadedCommand => _LoadedCommand.Get(Loaded);
         ViewModelCommandHandler _LoadedCommand = new ViewModelCommandHandler();
@@ -127,7 +137,24 @@ namespace PreviewTest.ViewModels
         RotateTransform3D _PreviewModelRotation = new RotateTransform3D();
         TranslateTransform3D _PreviewModelTranslation = new TranslateTransform3D();
 
+        class MeshMaterial
+        {
+            public MaterialGroup Material { get; } = new MaterialGroup();
+            public DiffuseMaterial Diffuse { get; set; } = null;
+            public EmissiveMaterial Emissive { get; set; } = null;
+
+            public MeshMaterial(Brush diffuse, Brush emissive)
+            {
+                Diffuse = new DiffuseMaterial(diffuse);
+                Emissive = new EmissiveMaterial(emissive);
+
+                Material.Children.Add(Diffuse);
+                Material.Children.Add(Emissive);
+            }
+        };
+
         IObjHandle _ObjHandle = null;
+        MeshMaterial[] _PreviewMeshMaterials = null;
 
         public MainWindowViewModel()
         {
@@ -137,12 +164,24 @@ namespace PreviewTest.ViewModels
         void Loaded()
         {
             // developing test.
-            PreviewModel = GeometryMaker.MakeCube3D();
+
+            PreviewModel.Children.Add(GeometryMaker.MakeCube3D());
 
             _ResetPosition = CameraPosition;
             _ResetLookAt = CameraLookAt;
             _ResetUpDirection = CameraUpDirection;
             _ResetDistance = CameraDistance;
+
+            PreviewModel.Transform = _PreviewModelTransfrom;
+
+            _PreviewModelTransfrom.Children.Add(_PreviewModelScale);
+            _PreviewModelTransfrom.Children.Add(_PreviewModelRotation);
+            _PreviewModelTransfrom.Children.Add(_PreviewModelTranslation);
+
+            _PreviewModelScale.ScaleX = 1.0;
+            _PreviewModelScale.ScaleY = 1.0;
+            _PreviewModelScale.ScaleZ = 1.0;
+            _PreviewModelTranslation.OffsetY = 1;
 
             var nCameraLookDir = (CameraLookAt - CameraPosition).NormalizeToVector3D();
             Camera = new PerspectiveCamera(CameraPosition, nCameraLookDir, CameraUpDirection, 45);
@@ -175,31 +214,7 @@ namespace PreviewTest.ViewModels
 
                 InvokeOnUIDispatcher(() =>
                 {
-                    _PreviewModelScale.ScaleX = 1.0;
-                    _PreviewModelScale.ScaleY = 1.0;
-                    _PreviewModelScale.ScaleZ = 1.0;
-                    _PreviewModelTranslation.OffsetY = 1;
-
-                    _PreviewModelTransfrom.Children.Add(_PreviewModelScale);
-                    _PreviewModelTransfrom.Children.Add(_PreviewModelRotation);
-                    _PreviewModelTransfrom.Children.Add(_PreviewModelTranslation);
-
-                    var objMesh = new MeshGeometry3D()
-                    {
-                        Positions = new Point3DCollection(_ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D())),
-                        Normals = new Vector3DCollection(_ObjHandle.Vertices.Select(arg => arg.Normal)),
-                        TriangleIndices = new Int32Collection(_ObjHandle.Indices),
-                    };
-
-                    PreviewModel = new GeometryModel3D()
-                    {
-                        Geometry = objMesh,
-                        Material = new DiffuseMaterial(Brushes.Gray),
-                        Transform = _PreviewModelTransfrom
-                    };
-
-                    RaisePropertyChanged(nameof(VertexCount));
-                    RaisePropertyChanged(nameof(IndexCount));
+                    UpdatePreviewModel(_ObjHandle.Vertices.Select(arg => arg.Normal).ToArray());
 
                     Loading = false;
                 });
@@ -265,18 +280,78 @@ namespace PreviewTest.ViewModels
                 normals[triIndex2] = normal;
             }
 
+            UpdatePreviewModel(normals);
+
+            // recolor selected material.
+            UpdateSelectedMaterialIndex(SelectedMaterialIndex);
+        }
+
+        void UpdatePreviewModel(in Vector3D[] normals)
+        {
+            PreviewModel.Children.Clear();
+
+            _PreviewMeshMaterials = new MeshMaterial[_ObjHandle.MasterMaterials.Length];
+
+            for (int i = 0; i < _PreviewMeshMaterials.Length; ++i)
+            {
+                _PreviewMeshMaterials[i] = new MeshMaterial(Brushes.Gray, Brushes.Black);
+            }
+
+            var positions = _ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D()).ToArray();
+            var textureCoordinates = _ObjHandle.Vertices.Select(arg => arg.UV.ToPoint()).ToArray();
+
+            if (_ObjHandle.Materials.Length > 0)
+            {
+                for (int i = 0; i < _ObjHandle.Materials.Length; ++i)
+                {
+                    var material = _ObjHandle.Materials[i];
+                    var masterMaterial = _ObjHandle.MasterMaterials[material.MasterIndex];
+                    var indexSegment = new ArraySegment<int>(_ObjHandle.Indices, material.StartIndex, material.IndexCount);
+                    var model = MakePreviewModel(positions, normals, textureCoordinates, indexSegment.ToArray(), _PreviewMeshMaterials[material.MasterIndex].Material);
+                    PreviewModel.Children.Add(model);
+                }
+            }
+            else
+            {
+                // default material
+                _PreviewMeshMaterials = new MeshMaterial[1];
+                _PreviewMeshMaterials[0] = new MeshMaterial(Brushes.Gray, Brushes.Black);
+
+                var model = MakePreviewModel(positions, normals, textureCoordinates, _ObjHandle.Indices, _PreviewMeshMaterials[0].Material);
+                PreviewModel.Children.Add(model);
+            }
+
+            RaisePropertyChanged(nameof(VertexCount));
+            RaisePropertyChanged(nameof(IndexCount));
+            RaisePropertyChanged(nameof(MasterMaterialCount));
+            RaisePropertyChanged(nameof(MasterMaterialNames));
+        }
+
+        GeometryModel3D MakePreviewModel(in Point3D[] positions, in Vector3D[] normals, in Point[] textureCoordinates, int[] indices, Material material)
+        {
+            Point3D[] posCollection = new Point3D[indices.Length];
+            Vector3D[] normalCollection = new Vector3D[indices.Length];
+            Point[] textureCoordinateCollection = new Point[indices.Length];
+
+            for (int i = 0; i < indices.Length; ++i)
+            {
+                int index = indices[i];
+                posCollection[i] = positions[index];
+                normalCollection[i] = normals[index];
+                textureCoordinateCollection[i] = textureCoordinates[index];
+            }
+
             var objMesh = new MeshGeometry3D()
             {
-                Positions = new Point3DCollection(_ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D())),
-                Normals = new Vector3DCollection(normals),
-                TriangleIndices = new Int32Collection(_ObjHandle.Indices),
+                Positions = new Point3DCollection(posCollection),
+                Normals = new Vector3DCollection(normalCollection),
+                TextureCoordinates = new PointCollection(textureCoordinateCollection),
             };
 
-            PreviewModel = new GeometryModel3D()
+            return new GeometryModel3D()
             {
                 Geometry = objMesh,
-                Material = new DiffuseMaterial(Brushes.Gray),
-                Transform = _PreviewModelTransfrom
+                Material = material,
             };
         }
 
@@ -318,6 +393,25 @@ namespace PreviewTest.ViewModels
                 Camera.UpDirection = CameraUpDirection;
 
                 LightDirection = nCameraLookDir;
+            }
+        }
+
+        void UpdateSelectedMaterialIndex(int value)
+        {
+            _SelectedMaterialIndex = value;
+            RaisePropertyChanged(nameof(UpdateSelectedMaterialIndex));
+
+            if(value == -1)
+            {
+                return;
+            }
+
+            var material = _PreviewMeshMaterials[value];
+            material.Emissive.Brush = Brushes.Blue;
+
+            foreach (var otherMaterial in _PreviewMeshMaterials.Where(arg => arg != material))
+            {
+                otherMaterial.Emissive.Brush = Brushes.Black;
             }
         }
     }

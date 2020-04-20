@@ -48,13 +48,13 @@ namespace PreviewTest.Controls
     /// </summary>
     public class ObjViewer : ContentControl
     {
-        public GeometryModel3D PreviewModel
+        public Model3D PreviewModel
         {
-            get => (GeometryModel3D)GetValue(PreviewModelProperty);
+            get => (Model3D)GetValue(PreviewModelProperty);
             set => SetValue(PreviewModelProperty, value);
         }
         public static readonly DependencyProperty PreviewModelProperty =
-            DependencyProperty.Register(nameof(PreviewModel), typeof(GeometryModel3D), typeof(ObjViewer), new FrameworkPropertyMetadata(null, PreviewModelPropertyChanged));
+            DependencyProperty.Register(nameof(PreviewModel), typeof(Model3D), typeof(ObjViewer), new FrameworkPropertyMetadata(null, PreviewModelPropertyChanged));
 
         public PerspectiveCamera Camera
         {
@@ -155,11 +155,21 @@ namespace PreviewTest.Controls
         static void PreviewModelPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var viewer = d as ObjViewer;
+            if(viewer._Viewport == null)
+            {
+                // In binding in constructing case, still not prepared _Viewport. 
+                return;
+            }
 
             if (e.OldValue != null)
             {
-                var model = viewer._Viewport.Children.OfType<ModelVisual3D>().First(arg => arg.Content == e.OldValue);
-                viewer._Viewport.Children.Remove(model);
+                var model = viewer._Viewport.Children.OfType<ModelVisual3D>().FirstOrDefault(arg => arg.Content == e.OldValue);
+
+                // OldValue is not null and not contains in _Viewport.Chidlren if called PreviewModelPropertyChanged still not prepared _Viewport
+                if (model != null)
+                {
+                    viewer._Viewport.Children.Remove(model);
+                }
             }
             if (e.NewValue != null)
             {
@@ -170,8 +180,10 @@ namespace PreviewTest.Controls
         static void CameraPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var viewer = d as ObjViewer;
-
-            viewer._Viewport.Camera = e.NewValue as PerspectiveCamera;
+            if(viewer._Viewport != null)
+            {
+                viewer._Viewport.Camera = e.NewValue as PerspectiveCamera;
+            }
         }
 
         static void LightDirectionPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

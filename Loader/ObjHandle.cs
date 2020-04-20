@@ -8,23 +8,43 @@ using System.Windows.Media.Media3D;
 
 namespace Loader
 {
-    public class Vertex
+    internal class Vertex : IVertex
     {
         public Vector3D Position { get; set; } = new Vector3D();
         public Vector3D Normal { get; set; } = new Vector3D();
         public Vector UV { get; set; } = new Vector();
     }
 
-    public class VertexIndex
+    internal class MasterMaterial : IMasterMaterial
     {
-        public int Position { get; set; } = -1;
-        public int Normal { get; set; } = -1;
-        public int UV { get; set; } = -1;
+        public int Index { get; }
+        public string Name { get; }
+
+        public MasterMaterial(int index, string name)
+        {
+            Index = index;
+            Name = name;
+        }
+    }
+
+    internal class Material : IMaterial
+    {
+        public int MasterIndex { get; } = -1;
+        public int StartIndex { get; }
+        public int IndexCount { get; set; } = -1;
+
+        public Material(int masterIndex, int startIndex)
+        {
+            MasterIndex = masterIndex;
+            StartIndex = startIndex;
+        }
     }
 
     internal class ObjHandle : IObjHandle
     {
-        public Vertex[] Vertices { get; set; } = null;
+        public IVertex[] Vertices { get; set; } = null;
         public int[] Indices { get; set; } = null;
+        public IMaterial[] Materials { get; set; } = null;
+        public IMasterMaterial[] MasterMaterials { get; set; } = null;
     }
 }

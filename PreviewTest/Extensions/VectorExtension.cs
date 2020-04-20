@@ -12,6 +12,11 @@ namespace PreviewTest.Extensions
     {
         static readonly Vector3D Zero = new Vector3D(0, 0, 0);
 
+        public static Point ToPoint(in this Vector v)
+        {
+            return new Point(v.X, v.Y);
+        }
+
         public static Vector NormalizeTo(in this Vector v)
         {
             var result = v;

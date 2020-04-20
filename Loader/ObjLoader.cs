@@ -11,6 +11,13 @@ namespace Loader
 {
     public static class ObjLoader
     {
+        class VertexIndex
+        {
+            public int Position { get; set; } = -1;
+            public int Normal { get; set; } = -1;
+            public int UV { get; set; } = -1;
+        }
+
         public static IObjHandle CreateHandle()
         {
             var handle = new ObjHandle();
@@ -33,7 +40,7 @@ namespace Loader
 
             var objHandle = handle as ObjHandle;
 
-            return LoadInternal(objHandle, ref data);
+            return LoadInternal(objHandle, in data);
         }
 
         public static bool LoadAsync(IObjHandle handle, string path, Action<IObjHandle> complete, Action<int, int> loadProgress = null, Action<int, int> constructProgress = null)
@@ -53,7 +60,7 @@ namespace Loader
                     data = await reader.ReadToEndAsync();
                 }
 
-                LoadInternal(objHandle, ref data, loadProgress, constructProgress);
+                LoadInternal(objHandle, in data, loadProgress, constructProgress);
                 complete(objHandle);
             });
 
@@ -77,13 +84,15 @@ namespace Loader
             return true;
         }
 
-        static bool LoadInternal(ObjHandle objHandle, ref string data, Action<int, int> parseProgress = null, Action<int, int> constructProgress = null)
+        static bool LoadInternal(ObjHandle objHandle, in string data, Action<int, int> parseProgress = null, Action<int, int> constructProgress = null)
         {
             var positionList = new List<Vector3D>();
             var normalList = new List<Vector3D>();
             var uvList = new List<Vector>();
 
             var vertexIndexList = new List<VertexIndex>();
+            var materialList = new List<Material>();
+            var masterMaterialList = new List<MasterMaterial>();
 
             parseProgress?.Invoke(data.Length, 0);
 
@@ -205,9 +214,11 @@ namespace Loader
                                 vIndexList.Add(vIndex);
                             }
 
+                            int indexCount;
                             if (vIndexList.Count == 3)
                             {
                                 vertexIndexList.AddRange(vIndexList);
+                                indexCount = 3;
                             }
                             else
                             {
@@ -219,13 +230,35 @@ namespace Loader
                                     vertexIndexList.Add(vIndexList[i + 1]);
                                     vertexIndexList.Add(vIndexList[i + 2]);
                                 }
+
+                                indexCount = count * 3;
+                            }
+
+                            if (materialList.Any())
+                            {
+                                materialList.Last().IndexCount += indexCount;
                             }
 
                             strIndex = SkipToEndOfLine(strIndex, data);
                         }
                         break;
-                    case 'm': // mtllib
                     case 'u': // usemtl
+                        {
+                            strIndex += 6; // skip "usemtl"
+                            strIndex = SkipToValidCharacter(strIndex, data);
+
+                            var materialName = ReadSequentialString(ref strIndex, data);
+
+                            var masterMaterial = masterMaterialList.FirstOrDefault(arg => arg.Name == materialName);
+                            if(masterMaterial == null)
+                            {
+                                masterMaterial = new MasterMaterial(masterMaterialList.Count, materialName);
+                                masterMaterialList.Add(masterMaterial);
+                            }
+                            materialList.Add(new Material(masterMaterial.Index, vertexIndexList.Count));
+                        }
+                        break;
+                    case 'm': // mtllib
                     case 'g':
                     case 'o':
                     case 's':
@@ -286,6 +319,8 @@ namespace Loader
 
             objHandle.Vertices = vertices.ToArray();
             objHandle.Indices = indices.ToArray();
+            objHandle.Materials = materialList.ToArray();
+            objHandle.MasterMaterials = masterMaterialList.ToArray();
 
             return true;
         }
@@ -324,9 +359,20 @@ namespace Loader
             return maxCount + index;
         }
 
+        static string ReadSequentialString(ref int index, in string data)
+        {
+            string src = string.Empty;
+            while(EndOfLine(index, data) == false && char.IsWhiteSpace(data[index]) == false)
+            {
+                src += data[index];
+                ++index;
+            }
+
+            return src;
+        }
+
         static int ReadFaceIndex(ref int index, in string data)
         {
-            int test = index;
             string src = string.Empty;
             while (EndOfLine(index, data) == false && char.IsWhiteSpace(data[index]) == false && data[index] != '/')
             {

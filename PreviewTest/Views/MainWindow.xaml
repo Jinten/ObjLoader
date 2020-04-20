@@ -57,6 +57,10 @@
                 <StackPanel Margin="4">
                     <TextBlock Text="{Binding VertexCount, StringFormat={}VertexCount : {0}}"/>
                     <TextBlock Text="{Binding IndexCount, StringFormat={}IndexCount : {0}}"/>
+                    <DockPanel Height="24" Margin="0,0,0,4">
+                        <TextBlock Text="{Binding MasterMaterialCount, StringFormat={}MasterMaterialCount : {0}}" VerticalAlignment="Center"/>
+                        <ComboBox Margin="4,0,0,0" ItemsSource="{Binding MasterMaterialNames}" SelectedIndex="{Binding SelectedMaterialIndex}"/>
+                    </DockPanel>
                     <Button Content="RecalculateNormals" Command="{Binding RecalculateNormalsCommand}"/>
                 </StackPanel>
             </GroupBox>

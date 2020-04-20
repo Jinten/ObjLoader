@@ -91,8 +91,8 @@ namespace Loader
             var uvList = new List<Vector>();
 
             var vertexIndexList = new List<VertexIndex>();
+            var clusterList = new List<Cluster>();
             var materialList = new List<Material>();
-            var masterMaterialList = new List<MasterMaterial>();
 
             parseProgress?.Invoke(data.Length, 0);
 
@@ -234,9 +234,9 @@ namespace Loader
                                 indexCount = count * 3;
                             }
 
-                            if (materialList.Any())
+                            if (clusterList.Any())
                             {
-                                materialList.Last().IndexCount += indexCount;
+                                clusterList.Last().IndexCount += indexCount;
                             }
 
                             strIndex = SkipToEndOfLine(strIndex, data);
@@ -249,13 +249,13 @@ namespace Loader
 
                             var materialName = ReadSequentialString(ref strIndex, data);
 
-                            var masterMaterial = masterMaterialList.FirstOrDefault(arg => arg.Name == materialName);
+                            var masterMaterial = materialList.FirstOrDefault(arg => arg.Name == materialName);
                             if(masterMaterial == null)
                             {
-                                masterMaterial = new MasterMaterial(masterMaterialList.Count, materialName);
-                                masterMaterialList.Add(masterMaterial);
+                                masterMaterial = new Material(materialList.Count, materialName);
+                                materialList.Add(masterMaterial);
                             }
-                            materialList.Add(new Material(masterMaterial.Index, vertexIndexList.Count));
+                            clusterList.Add(new Cluster(masterMaterial.Index, vertexIndexList.Count));
                         }
                         break;
                     case 'm': // mtllib
@@ -319,8 +319,8 @@ namespace Loader
 
             objHandle.Vertices = vertices.ToArray();
             objHandle.Indices = indices.ToArray();
+            objHandle.Clusters = clusterList.ToArray();
             objHandle.Materials = materialList.ToArray();
-            objHandle.MasterMaterials = masterMaterialList.ToArray();
 
             return true;
         }

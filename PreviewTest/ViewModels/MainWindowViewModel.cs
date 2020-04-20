@@ -104,9 +104,9 @@ namespace PreviewTest.ViewModels
 
         public int VertexCount => _ObjHandle != null ? _ObjHandle.Vertices.Length : 0;
         public int IndexCount => _ObjHandle != null ? _ObjHandle.Indices.Length : 0;
-        public int MasterMaterialCount => _ObjHandle != null ? _ObjHandle.MasterMaterials.Length : 0;
+        public int MaterialCount => _ObjHandle != null ? _ObjHandle.Materials.Length : 0;
 
-        public IEnumerable<string> MasterMaterialNames => _ObjHandle?.MasterMaterials.Select(arg => arg.Name);
+        public IEnumerable<string> MaterialNames => _ObjHandle?.Materials.Select(arg => arg.Name);
 
         public int SelectedMaterialIndex
         {
@@ -290,7 +290,7 @@ namespace PreviewTest.ViewModels
         {
             PreviewModel.Children.Clear();
 
-            _PreviewMeshMaterials = new MeshMaterial[_ObjHandle.MasterMaterials.Length];
+            _PreviewMeshMaterials = new MeshMaterial[_ObjHandle.Materials.Length];
 
             for (int i = 0; i < _PreviewMeshMaterials.Length; ++i)
             {
@@ -300,14 +300,14 @@ namespace PreviewTest.ViewModels
             var positions = _ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D()).ToArray();
             var textureCoordinates = _ObjHandle.Vertices.Select(arg => arg.UV.ToPoint()).ToArray();
 
-            if (_ObjHandle.Materials.Length > 0)
+            if (_ObjHandle.Clusters.Length > 0)
             {
-                for (int i = 0; i < _ObjHandle.Materials.Length; ++i)
+                for (int i = 0; i < _ObjHandle.Clusters.Length; ++i)
                 {
-                    var material = _ObjHandle.Materials[i];
-                    var masterMaterial = _ObjHandle.MasterMaterials[material.MasterIndex];
-                    var indexSegment = new ArraySegment<int>(_ObjHandle.Indices, material.StartIndex, material.IndexCount);
-                    var model = MakePreviewModel(positions, normals, textureCoordinates, indexSegment.ToArray(), _PreviewMeshMaterials[material.MasterIndex].Material);
+                    var cluster = _ObjHandle.Clusters[i];
+                    var material = _ObjHandle.Materials[cluster.MaterialIndex];
+                    var indexSegment = new ArraySegment<int>(_ObjHandle.Indices, cluster.StartIndex, cluster.IndexCount);
+                    var model = MakePreviewModel(positions, normals, textureCoordinates, indexSegment.ToArray(), _PreviewMeshMaterials[cluster.MaterialIndex].Material);
                     PreviewModel.Children.Add(model);
                 }
             }
@@ -323,8 +323,8 @@ namespace PreviewTest.ViewModels
 
             RaisePropertyChanged(nameof(VertexCount));
             RaisePropertyChanged(nameof(IndexCount));
-            RaisePropertyChanged(nameof(MasterMaterialCount));
-            RaisePropertyChanged(nameof(MasterMaterialNames));
+            RaisePropertyChanged(nameof(MaterialCount));
+            RaisePropertyChanged(nameof(MaterialNames));
         }
 
         GeometryModel3D MakePreviewModel(in Point3D[] positions, in Vector3D[] normals, in Point[] textureCoordinates, int[] indices, Material material)

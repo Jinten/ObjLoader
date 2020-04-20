@@ -15,27 +15,27 @@ namespace Loader
         public Vector UV { get; set; } = new Vector();
     }
 
-    internal class MasterMaterial : IMasterMaterial
+    internal class Material : IMaterial
     {
         public int Index { get; }
         public string Name { get; }
 
-        public MasterMaterial(int index, string name)
+        public Material(int index, string name)
         {
             Index = index;
             Name = name;
         }
     }
 
-    internal class Material : IMaterial
+    internal class Cluster : ICluster
     {
-        public int MasterIndex { get; } = -1;
+        public int MaterialIndex { get; } = -1;
         public int StartIndex { get; }
         public int IndexCount { get; set; } = -1;
 
-        public Material(int masterIndex, int startIndex)
+        public Cluster(int masterIndex, int startIndex)
         {
-            MasterIndex = masterIndex;
+            MaterialIndex = masterIndex;
             StartIndex = startIndex;
         }
     }
@@ -44,7 +44,7 @@ namespace Loader
     {
         public IVertex[] Vertices { get; set; } = null;
         public int[] Indices { get; set; } = null;
+        public ICluster[] Clusters { get; set; } = null;
         public IMaterial[] Materials { get; set; } = null;
-        public IMasterMaterial[] MasterMaterials { get; set; } = null;
     }
 }

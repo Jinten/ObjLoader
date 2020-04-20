@@ -15,14 +15,14 @@ namespace Loader
         Vector UV { get; }
     }
 
-    public interface IMasterMaterial
+    public interface IMaterial
     {
         string Name { get; }
     }
 
-    public interface IMaterial
+    public interface ICluster
     {
-        int MasterIndex { get; }
+        int MaterialIndex { get; }
         int StartIndex { get; }
         int IndexCount { get; }
     }
@@ -31,7 +31,7 @@ namespace Loader
     {
         IVertex[] Vertices { get; }
         int[] Indices { get; }
+        ICluster[] Clusters { get; }
         IMaterial[] Materials { get; }
-        IMasterMaterial[] MasterMaterials { get; }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Livet;
 using Livet.Commands;
-using Loader;
 using Microsoft.Win32;
+using ObjLoader;
 using PreviewTest.Extensions;
 using PreviewTest.Utilities;
 using System;
@@ -207,8 +207,8 @@ namespace PreviewTest.ViewModels
             IsIndeterminateLoadTime = true;
             LoadingState = "Reading obj file...";
 
-            _ObjHandle = ObjLoader.CreateHandle();
-            var result = ObjLoader.LoadAsync(_ObjHandle, PreviewModelPath, loadedHandle =>
+            _ObjHandle = ObjFileLoader.CreateHandle();
+            var result = ObjFileLoader.LoadAsync(_ObjHandle, PreviewModelPath, loadedHandle =>
             {
                 _ObjHandle = loadedHandle;
 

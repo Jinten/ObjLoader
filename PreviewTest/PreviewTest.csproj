@@ -142,9 +142,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Loader\Loader.csproj">
+    <ProjectReference Include="..\ObjLoader\ObjLoader.csproj">
       <Project>{21fa6c3d-9489-4447-82b8-7bf0d795d381}</Project>
-      <Name>Loader</Name>
+      <Name>ObjLoader</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

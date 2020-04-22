@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Media3D;
 
-namespace Loader
+namespace ObjLoader
 {
     public interface IVertex
     {

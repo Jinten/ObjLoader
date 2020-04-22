@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Media3D;
 
-namespace Loader
+namespace ObjLoader
 {
-    public static class ObjLoader
+    public static class ObjFileLoader
     {
         class VertexIndex
         {

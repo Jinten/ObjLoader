@@ -31,7 +31,7 @@ namespace ObjLoader
     {
         public int MaterialIndex { get; } = -1;
         public int StartIndex { get; }
-        public int IndexCount { get; set; } = -1;
+        public int IndexCount { get; set; } = 0;
 
         public Cluster(int masterIndex, int startIndex)
         {

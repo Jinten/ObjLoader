@@ -96,6 +96,8 @@ namespace ObjLoader
 
             parseProgress?.Invoke(data.Length, 0);
 
+            int totalIndexCount = 0;
+
             int strIndex = 0;
             while (strIndex < data.Length)
             {
@@ -238,6 +240,7 @@ namespace ObjLoader
                             {
                                 clusterList.Last().IndexCount += indexCount;
                             }
+                            totalIndexCount += indexCount;
 
                             strIndex = SkipToEndOfLine(strIndex, data);
                         }
@@ -249,13 +252,14 @@ namespace ObjLoader
 
                             var materialName = ReadSequentialString(ref strIndex, data);
 
-                            var masterMaterial = materialList.FirstOrDefault(arg => arg.Name == materialName);
-                            if(masterMaterial == null)
+                            var material = materialList.FirstOrDefault(arg => arg.Name == materialName);
+                            if(material == null)
                             {
-                                masterMaterial = new Material(materialList.Count, materialName);
-                                materialList.Add(masterMaterial);
+                                material = new Material(materialList.Count, materialName);
+                                materialList.Add(material);
                             }
-                            clusterList.Add(new Cluster(masterMaterial.Index, vertexIndexList.Count));
+                            int materialIndex = material != null ? material.Index : 0;
+                            clusterList.Add(new Cluster(materialIndex, vertexIndexList.Count));
                         }
                         break;
                     case 'm': // mtllib
@@ -271,6 +275,11 @@ namespace ObjLoader
                 }
 
                 parseProgress?.Invoke(data.Length, strIndex);
+            }
+
+            if(clusterList.Count == 0)
+            {
+                clusterList.Add(new Cluster(0, 0) { IndexCount = totalIndexCount });
             }
 
             int vCount = positionList.Count;

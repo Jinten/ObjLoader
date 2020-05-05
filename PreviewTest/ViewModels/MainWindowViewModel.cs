@@ -106,7 +106,7 @@ namespace PreviewTest.ViewModels
         public int IndexCount => _ObjHandle != null ? _ObjHandle.Indices.Length : 0;
         public int MaterialCount => _ObjHandle != null ? _ObjHandle.Materials.Length : 0;
 
-        public IEnumerable<string> MaterialNames => _ObjHandle?.Materials.Select(arg => arg.Name);
+        public IEnumerable<string> MaterialNames => _PreviewMeshMaterials?.Select(arg => arg.Name);
 
         public int SelectedMaterialIndex
         {
@@ -139,12 +139,14 @@ namespace PreviewTest.ViewModels
 
         class MeshMaterial
         {
+            public string Name { get; } = string.Empty;
             public MaterialGroup Material { get; } = new MaterialGroup();
             public DiffuseMaterial Diffuse { get; set; } = null;
             public EmissiveMaterial Emissive { get; set; } = null;
 
-            public MeshMaterial(Brush diffuse, Brush emissive)
+            public MeshMaterial(string name, Brush diffuse, Brush emissive)
             {
+                Name = name;
                 Diffuse = new DiffuseMaterial(diffuse);
                 Emissive = new EmissiveMaterial(emissive);
 
@@ -290,18 +292,18 @@ namespace PreviewTest.ViewModels
         {
             PreviewModel.Children.Clear();
 
-            _PreviewMeshMaterials = new MeshMaterial[_ObjHandle.Materials.Length];
-
-            for (int i = 0; i < _PreviewMeshMaterials.Length; ++i)
-            {
-                _PreviewMeshMaterials[i] = new MeshMaterial(Brushes.Gray, Brushes.Black);
-            }
-
             var positions = _ObjHandle.Vertices.Select(arg => arg.Position.ToPoint3D()).ToArray();
             var textureCoordinates = _ObjHandle.Vertices.Select(arg => arg.UV.ToPoint()).ToArray();
 
-            if (_ObjHandle.Clusters.Length > 0)
+            if (_ObjHandle.Materials.Length > 0)
             {
+                _PreviewMeshMaterials = new MeshMaterial[_ObjHandle.Materials.Length];
+
+                for (int i = 0; i < _PreviewMeshMaterials.Length; ++i)
+                {
+                    _PreviewMeshMaterials[i] = new MeshMaterial(_ObjHandle.Materials[i].Name, Brushes.Gray, Brushes.Black);
+                }
+
                 for (int i = 0; i < _ObjHandle.Clusters.Length; ++i)
                 {
                     var cluster = _ObjHandle.Clusters[i];
@@ -315,7 +317,7 @@ namespace PreviewTest.ViewModels
             {
                 // default material
                 _PreviewMeshMaterials = new MeshMaterial[1];
-                _PreviewMeshMaterials[0] = new MeshMaterial(Brushes.Gray, Brushes.Black);
+                _PreviewMeshMaterials[0] = new MeshMaterial("Default", Brushes.Gray, Brushes.Black);
 
                 var model = MakePreviewModel(positions, normals, textureCoordinates, _ObjHandle.Indices, _PreviewMeshMaterials[0].Material);
                 PreviewModel.Children.Add(model);
@@ -401,7 +403,7 @@ namespace PreviewTest.ViewModels
             _SelectedMaterialIndex = value;
             RaisePropertyChanged(nameof(UpdateSelectedMaterialIndex));
 
-            if(value == -1)
+            if (value == -1)
             {
                 return;
             }

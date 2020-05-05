@@ -441,7 +441,7 @@ namespace ObjLoader
                 return index;
             }
 
-            while (data[index] != '\n')
+            while (EndOfLine(index, data) == false)
             {
                 ++index;
             }
